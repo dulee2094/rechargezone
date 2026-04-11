@@ -37,6 +37,11 @@ export default function MapContainer({ stations, selectedId, onSelect }) {
       typeClass = 'slow'; // 파란/초록색
     }
 
+    // 층수 정보가 실제로 있을 때만 뱃지 표시 (API 데이터는 층수 미제공)
+    const hasFloorInfo = station.floor && 
+      station.floor !== '정보 미제공' && 
+      station.floor !== '불명(공공데이터)';
+
     // 리액트 컴포넌트를 HTML 문자열로 변환하여 Leaflet 마커로 활용
     const html = ReactDOMServer.renderToString(
       <div 
@@ -45,9 +50,11 @@ export default function MapContainer({ stations, selectedId, onSelect }) {
           transform: isSelected ? 'scale(1.15) translateY(-5px)' : 'scale(1)'
         }}
       >
-        <div className={`marker-badge ${typeClass}`}>
-          {station.floor}
-        </div>
+        {hasFloorInfo && (
+          <div className={`marker-badge ${typeClass}`}>
+            {station.floor}
+          </div>
+        )}
         <div className={`marker-icon ${typeClass}`}>
           <Zap size={20} fill="currentColor" />
         </div>

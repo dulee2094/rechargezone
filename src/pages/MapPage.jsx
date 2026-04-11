@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MapContainer from '../components/MapContainer';
 import StationPanel from '../components/StationPanel';
-import { MOCK_STATIONS } from '../data/mockData';
+import { MOCK_STATIONS, enrichWithMicroLocation } from '../data/mockData';
 import { Zap, ShieldCheck, Loader } from 'lucide-react';
 
 export default function MapPage() {
@@ -16,23 +16,33 @@ export default function MapPage() {
   useEffect(() => {
     const fetchApiData = async () => {
       try {
-        // Netlify 서버리스 함수를 통해 CORS 없이 환경부 API 호출 (서울 전체 = zcode 11)
-        const URL = `/.netlify/functions/ev-stations?zcode=11&numOfRows=500`;
+        // 개발 단계: 서초구(11650), 강남구(11680), 송파구(11710) 3개 구만 대상
+        const TARGET_DISTRICTS = [
+          { name: '서초구', zscode: '11650' },
+          { name: '강남구', zscode: '11680' },
+          { name: '송파구', zscode: '11710' },
+        ];
 
-        const response = await fetch(URL);
-        const data = await response.json();
+        // 3개 구 병렬 호출 (구당 최대 999개)
+        const districtPromises = TARGET_DISTRICTS.map(({ name, zscode }) =>
+          fetch(`/.netlify/functions/ev-stations?zcode=11&zscode=${zscode}&numOfRows=999&pageNo=1`)
+            .then(r => r.json())
+            .then(d => {
+              const items = d?.items?.item || [];
+              console.log(`[API] ${name} 충전기 ${items.length}개 / 전체 ${d?.totalCount || 0}개`);
+              return items;
+            })
+        );
 
-        console.log("[API 응답 전체]", JSON.stringify(data).slice(0, 500));
+        const districtResults = await Promise.all(districtPromises);
+        const rawItems = districtResults.flat();
 
-        // 환경부 API 실제 JSON 응답 구조: data.items.item (items는 배열이 아닌 객체!)
-        const rawItems = data?.items?.item;
+        console.log(`[API 성공] 3개 구 합계 ${rawItems.length}개 충전기 데이터 수신`);
 
         if (!rawItems || rawItems.length === 0) {
-          console.warn("[API 파싱 실패] 데이터 없음. 응답 구조:", Object.keys(data || {}));
+          console.warn("[API 파싱 실패] 3개 구 데이터가 비어있습니다.");
           return;
         }
-
-        console.log(`[API 성공] 총 ${rawItems.length}개 충전기 데이터 수신`);
 
         // 같은 충전소(statId)끼리 기기 개수를 묶어주기 위한 로직
         const grouped = {};
@@ -62,9 +72,9 @@ export default function MapPage() {
           }
         });
 
-        const apiStations = Object.values(grouped).filter(
-          (s) => !isNaN(s.lat) && !isNaN(s.lng) && s.lat !== 0 && s.lng !== 0
-        );
+        const apiStations = Object.values(grouped)
+          .filter((s) => !isNaN(s.lat) && !isNaN(s.lng) && s.lat !== 0 && s.lng !== 0)
+          .map(enrichWithMicroLocation); // 마이크로 로케이션 DB 자동 매칭
 
         console.log(`[클러스터링 준비] 유효 충전소 ${apiStations.length}개`);
 
