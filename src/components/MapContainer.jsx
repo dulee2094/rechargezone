@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { MapContainer as LeafletMap, TileLayer, Marker, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { Zap } from 'lucide-react';
 import ReactDOMServer from 'react-dom/server';
@@ -24,7 +25,18 @@ export default function MapContainer({ stations, selectedId, onSelect }) {
 
   const createCustomIcon = (station, isSelected) => {
     const isFull = station.availableChargers === 0;
+    const isRapid = station.type && station.type.includes("급속");
     
+    // UI 표시 로직 (급속, 완속, 만차 상태 구분)
+    let typeClass = '';
+    if (isFull) {
+      typeClass = 'full'; // 회색
+    } else if (isRapid) {
+      typeClass = 'rapid'; // 빨간/주황색
+    } else {
+      typeClass = 'slow'; // 파란/초록색
+    }
+
     // 리액트 컴포넌트를 HTML 문자열로 변환하여 Leaflet 마커로 활용
     const html = ReactDOMServer.renderToString(
       <div 
@@ -33,10 +45,10 @@ export default function MapContainer({ stations, selectedId, onSelect }) {
           transform: isSelected ? 'scale(1.15) translateY(-5px)' : 'scale(1)'
         }}
       >
-        <div className={`marker-badge ${isFull ? 'full' : 'available'}`}>
+        <div className={`marker-badge ${typeClass}`}>
           {station.floor}
         </div>
-        <div className={`marker-icon ${isFull ? 'full' : ''}`}>
+        <div className={`marker-icon ${typeClass}`}>
           <Zap size={20} fill="currentColor" />
         </div>
       </div>
@@ -50,10 +62,19 @@ export default function MapContainer({ stations, selectedId, onSelect }) {
     });
   };
 
+  // 클러스터 아이콘 커스텀 (옵션)
+  const createClusterCustomIcon = function (cluster) {
+    return L.divIcon({
+      html: `<div class="custom-cluster-icon"><span>${cluster.getChildCount()}</span></div>`,
+      className: '',
+      iconSize: L.point(40, 40, true),
+    });
+  };
+
   return (
     <LeafletMap
-      center={[mapCenterLat, mapCenterLng]}
-      zoom={13}
+      center={[mapCenterLat, mapCenterLat]}
+      zoom={12}
       style={{ width: "100%", height: "100%", zIndex: 0 }}
       zoomControl={false} // 확대/축소 버튼의 위치를 조절하거나 숨길 때
     >
@@ -64,20 +85,26 @@ export default function MapContainer({ stations, selectedId, onSelect }) {
       
       <MapRecenter lat={mapCenterLat} lng={mapCenterLng} />
 
-      {stations.map((station) => {
-        const isSelected = selectedId === station.id;
+      <MarkerClusterGroup
+        chunkedLoading
+        iconCreateFunction={createClusterCustomIcon}
+        maxClusterRadius={60}
+      >
+        {stations.map((station) => {
+          const isSelected = selectedId === station.id;
 
-        return (
-          <Marker
-            key={station.id}
-            position={[station.lat, station.lng]}
-            icon={createCustomIcon(station, isSelected)}
-            eventHandlers={{
-              click: () => onSelect(station.id),
-            }}
-          />
-        );
-      })}
+          return (
+            <Marker
+              key={station.id}
+              position={[station.lat, station.lng]}
+              icon={createCustomIcon(station, isSelected)}
+              eventHandlers={{
+                click: () => onSelect(station.id),
+              }}
+            />
+          );
+        })}
+      </MarkerClusterGroup>
     </LeafletMap>
   );
 }

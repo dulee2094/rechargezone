@@ -100,21 +100,63 @@ h1, h2, h3 {
   align-items: center;
 }
 .marker-badge.available { color: var(--success); border-color: var(--success); }
-.marker-badge.full { color: var(--danger); border-color: var(--danger); }
+.marker-badge.full { color: var(--text-muted); border-color: var(--text-muted); }
+.marker-badge.rapid { color: #ff5e00; border-color: #ff5e00; }
+.marker-badge.slow { color: var(--success); border-color: var(--success); }
 .marker-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--accent) 0%, #0088ff 100%);
   border-radius: 50%;
   border: 2px solid #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
+  transition: all 0.3s;
+}
+.marker-icon.rapid {
+  background: linear-gradient(135deg, #ff5e00 0%, #ff0055 100%);
+  box-shadow: 0 0 12px rgba(255, 94, 0, 0.5);
+}
+.marker-icon.slow {
+  background: linear-gradient(135deg, #00d2ff 0%, #0088ff 100%);
+  box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
 }
 .marker-icon.full {
-  background: linear-gradient(135deg, var(--bg-panel-solid) 0%, #333 100%);
-  border-color: var(--danger);
+  background: linear-gradient(135deg, #2a2e35 0%, #1a1d24 100%);
+  border-color: #555;
+  color: #555;
+}
+
+/* Cluster Icon Custom */
+.custom-cluster-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(0, 210, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
+  cursor: pointer;
+}
+.custom-cluster-icon span {
+  background: linear-gradient(135deg, var(--accent) 0%, #0088ff 100%);
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  border: 2px solid var(--bg-dark);
+}
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 210, 255, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(0, 210, 255, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 210, 255, 0); }
 }
 
 /* UI Elements */
