@@ -24,8 +24,8 @@ export default function MapPage() {
 
         console.log("[API 응답 전체]", JSON.stringify(data).slice(0, 500));
 
-        // 환경부 API 실제 JSON 응답 구조: data.items[0].item
-        const rawItems = data?.items?.[0]?.item;
+        // 환경부 API 실제 JSON 응답 구조: data.items.item (items는 배열이 아닌 객체!)
+        const rawItems = data?.items?.item;
 
         if (!rawItems || rawItems.length === 0) {
           console.warn("[API 파싱 실패] 데이터 없음. 응답 구조:", Object.keys(data || {}));
