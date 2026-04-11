@@ -22,45 +22,54 @@ export default function MapPage() {
         const response = await fetch(URL);
         const data = await response.json();
 
-        // 환경부 API 결과값 파싱
-        if (data && data.items && data.items[0] && data.items[0].item) {
-          const rawItems = data.items[0].item;
-          
-          // 같은 충전소(statId)끼리 기기 개수를 묶어주기 위한 로직
-          const grouped = {};
-          rawItems.forEach((st) => {
-            if (!grouped[st.statId]) {
-              grouped[st.statId] = {
-                id: st.statId,
-                name: st.statNm,
-                address: st.addr,
-                lat: parseFloat(st.lat),
-                lng: parseFloat(st.lng),
-                floor: '불명(공공데이터)',
-                pillar: '안내없음',
-                description: `이용가능시간: ${st.useTime}`,
-                totalChargers: 0,
-                availableChargers: 0,
-                type: st.chgerType === '02' || st.chgerType === '04' ? '완속' : '급속, 완속',
-                operator: st.busiNm,
-                images: [],
-                tips: []
-              };
-            }
-            
-            grouped[st.statId].totalChargers += 1;
-            // stat === "2" 이면 통신이상 없고 충전 대기상태(사용가능)
-            if (st.stat === "2") {
-              grouped[st.statId].availableChargers += 1;
-            }
-          });
+        console.log("[API 응답 전체]", JSON.stringify(data).slice(0, 500));
 
-          const apiStations = Object.values(grouped);
-          
-          // API 데이터가 성공적으로 파싱되면 화면에 출력
-          if (apiStations.length > 0) {
-            setStations(apiStations);
+        // 환경부 API 실제 JSON 응답 구조: data.response.body.items.item
+        const rawItems = data?.response?.body?.items?.item;
+
+        if (!rawItems || rawItems.length === 0) {
+          console.warn("[API 파싱 실패] 데이터 없음. 응답 구조:", Object.keys(data || {}));
+          return;
+        }
+
+        console.log(`[API 성공] 총 ${rawItems.length}개 충전기 데이터 수신`);
+
+        // 같은 충전소(statId)끼리 기기 개수를 묶어주기 위한 로직
+        const grouped = {};
+        rawItems.forEach((st) => {
+          if (!grouped[st.statId]) {
+            grouped[st.statId] = {
+              id: st.statId,
+              name: st.statNm,
+              address: st.addr,
+              lat: parseFloat(st.lat),
+              lng: parseFloat(st.lng),
+              floor: '정보 미제공',
+              pillar: '정보 미제공',
+              description: `이용가능시간: ${st.useTime || '미상'}`,
+              totalChargers: 0,
+              availableChargers: 0,
+              type: (st.chgerType === '02' || st.chgerType === '04') ? '완속' : '급속',
+              operator: st.busiNm,
+              images: [],
+              tips: []
+            };
           }
+          grouped[st.statId].totalChargers += 1;
+          // stat === '2': 충전 대기(사용 가능)
+          if (st.stat === '2') {
+            grouped[st.statId].availableChargers += 1;
+          }
+        });
+
+        const apiStations = Object.values(grouped).filter(
+          (s) => !isNaN(s.lat) && !isNaN(s.lng) && s.lat !== 0 && s.lng !== 0
+        );
+
+        console.log(`[클러스터링 준비] 유효 충전소 ${apiStations.length}개`);
+
+        if (apiStations.length > 0) {
+          setStations(apiStations);
         }
       } catch (err) {
         console.warn("API 연동 실패(CORS 혹인 키 오류). 더미 데이터를 대신 보여줍니다.", err);
