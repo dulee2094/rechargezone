@@ -16,9 +16,8 @@ export default function MapPage() {
   useEffect(() => {
     const fetchApiData = async () => {
       try {
-        const API_KEY = "45269cf51194d9dcd2a2d1cd8d47e6c082090cf8e9777c0710ed61feb32b871e";
-        // 환경부 충전소 API 엔드포인트 (서울 지역 zcode=11, 200개 파싱)
-        const URL = `https://apis.data.go.kr/B552584/EvCharger/getChargerInfo?serviceKey=${encodeURIComponent(API_KEY)}&pageNo=1&numOfRows=200&zcode=11&dataType=JSON`;
+        // Netlify 서버리스 함수를 통해 CORS 없이 환경부 API 호출 (서울 전체 = zcode 11)
+        const URL = `/.netlify/functions/ev-stations?zcode=11&numOfRows=500`;
 
         const response = await fetch(URL);
         const data = await response.json();
