@@ -1,10 +1,16 @@
 import React from 'react';
-import { X, MapPin, BatteryCharging, Camera, MessageSquare, Target, Navigation } from 'lucide-react';
+import { X, MapPin, BatteryCharging, Camera, MessageSquare, Target, Navigation, ShieldCheck, ShieldOff } from 'lucide-react';
 
 export default function StationPanel({ station, onClose }) {
   if (!station) {
     return <div className="floating-panel glass hidden"></div>;
   }
+
+  // 위치 정보 검증 여부 판단
+  const UNVERIFIED_VALUES = ['정보 미제공', '불명(공공데이터)', undefined, null, ''];
+  const isVerified =
+    station.verifiedAt ||
+    (!UNVERIFIED_VALUES.includes(station.floor) && !UNVERIFIED_VALUES.includes(station.pillar));
 
   const handleNavi = (type) => {
     const { lat, lng, name } = station;
@@ -49,22 +55,46 @@ export default function StationPanel({ station, onClose }) {
 
       <div className="panel-content">
         {/* Core Differentiation: Micro Location Data */}
-        <div className="micro-location-card">
-          <div className="ml-header">
-            <Target size={14} /> 정확한 위치
-          </div>
-          <div className="ml-data">
-            <div className="ml-badge">
-              <span>층수</span> {station.floor}
+        {isVerified ? (
+          <div className="micro-location-card verified">
+            <div className="ml-header">
+              <Target size={14} /> 정확한 위치
+              <span className="verification-badge verified">
+                <ShieldCheck size={12} /> 현장 검증 완료
+                {station.verifiedAt && <span className="verified-date">{station.verifiedAt}</span>}
+              </span>
             </div>
-            <div className="ml-badge">
-              <span>기둥</span> {station.pillar}
+            <div className="ml-data">
+              <div className="ml-badge">
+                <span>층수</span> {station.floor}
+              </div>
+              <div className="ml-badge">
+                <span>기둥</span> {station.pillar}
+              </div>
+            </div>
+            <div className="ml-desc">
+              {station.description}
             </div>
           </div>
-          <div className="ml-desc">
-            {station.description}
+        ) : (
+          <div className="micro-location-card unverified">
+            <div className="ml-header unverified">
+              <ShieldOff size={14} /> 정확한 위치
+              <span className="verification-badge unverified">
+                <ShieldOff size={12} /> 위치 정보 미확보
+              </span>
+            </div>
+            <div className="ml-unverified-body">
+              <p>아직 정확한 층수·주차구역이 확인되지 않은 충전소입니다.<br/>아래 기본 정보는 환경부 공공 API에서 제공됩니다.</p>
+              <div className="ml-badge unverified-badge">
+                <span>이용시간</span> {station.description || '미상'}
+              </div>
+            </div>
+            <button className="report-location-btn">
+              📍 정확한 위치 정보 제보하기
+            </button>
           </div>
-        </div>
+        )}
 
         {/* Basic Status */}
         <div className="status-grid">

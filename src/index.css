@@ -301,6 +301,98 @@ h1, h2, h3 {
   border-top: 1px dashed var(--border);
 }
 
+/* ── Verified vs Unverified Card ───────────────────────── */
+
+/* 검증 완료: 기존 accent(청록) 스타일 유지 + 초록 상단 바 */
+.micro-location-card.verified {
+  border-color: var(--success);
+  box-shadow: 0 4px 24px rgba(46, 235, 139, 0.12);
+}
+.micro-location-card.verified::before {
+  background: var(--success);
+}
+
+/* 미확보: 회색 점선 테두리, 글로우 없음 */
+.micro-location-card.unverified {
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.02);
+}
+.micro-location-card.unverified::before {
+  background: rgba(255, 255, 255, 0.15);
+}
+.ml-header.unverified {
+  color: var(--text-muted);
+}
+
+/* 신뢰도 뱃지 공통 */
+.verification-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  margin-left: auto;
+  letter-spacing: 0.3px;
+}
+.verification-badge.verified {
+  background: rgba(46, 235, 139, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(46, 235, 139, 0.35);
+}
+.verification-badge.unverified {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.verified-date {
+  font-size: 10px;
+  opacity: 0.75;
+  margin-left: 2px;
+}
+
+/* 미확보 본문 */
+.ml-unverified-body {
+  padding: 4px 0 12px;
+}
+.ml-unverified-body p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.ml-badge.unverified-badge {
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.ml-badge.unverified-badge span {
+  color: var(--text-muted);
+}
+
+/* 제보 버튼 */
+.report-location-btn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: var(--text-muted);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+.report-location-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
 /* Status Cards */
 .status-grid {
   display: grid;
