@@ -1,6 +1,8 @@
 // ✅ 공개 자료 조사 기반 실제 마이크로 로케이션 DB
 // 출처: 각 시설 공식 홈페이지, 해피차저, 일렉베리, 환경부 앱 등
 // 환경부 API에 없는 '층수/기둥번호' 정보를 직접 조사하여 등록한 핵심 데이터입니다.
+import kepcoAdditional from './kepcoAdditional.json';
+
 export const MICRO_LOCATION_DB = {
 
   // ── 강남구 ─────────────────────────────────────────────
@@ -96,6 +98,7 @@ export const MICRO_LOCATION_DB = {
 // API 데이터와 마이크로 로케이션 DB를 매칭하는 함수
 // 충전소 이름에 키워드가 포함되면 상세 위치 정보를 덮어씁니다.
 export function enrichWithMicroLocation(station) {
+  // 1. 기존 수제작 MICRO_LOCATION_DB 검사
   for (const [keyword, detail] of Object.entries(MICRO_LOCATION_DB)) {
     if (station.name && station.name.replace(/\s/g, '').includes(keyword.replace(/\s/g, ''))) {
       return {
@@ -110,6 +113,28 @@ export function enrichWithMicroLocation(station) {
       };
     }
   }
+
+  // 2. 한전에서 받아온 4,700 여개 부가정보(kepcoAdditional.json) 검사
+  if (station.name) {
+    const rawName = station.name.replace(/\s/g, '');
+    
+    // 매칭 확률을 극대화하기 위해 양방향으로 포함되는지 검사합니다.
+    const kepcoMatch = kepcoAdditional.find(k => {
+      const kName = k.name.replace(/\s/g, '');
+      return kName === rawName || kName.includes(rawName) || rawName.includes(kName);
+    });
+    
+    if (kepcoMatch) {
+       return {
+         ...station,
+         // 한전 데이터의 '자세한 위치'를 floor에 담아서 배지로 노출
+         floor: kepcoMatch.detailLocation && kepcoMatch.detailLocation !== "" ? kepcoMatch.detailLocation : '위치 정보 없음',
+         pillar: kepcoMatch.parkingFee && kepcoMatch.parkingFee !== "" ? kepcoMatch.parkingFee : '주차료 미상',
+         description: `[한전 공식데이터] 운영: ${kepcoMatch.openTime} / 추가정보: ${kepcoMatch.parkingFee}`,
+       };
+    }
+  }
+
   return station; // 매칭 없으면 원본 반환
 }
 

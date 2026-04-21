@@ -3,7 +3,18 @@ import { Link } from 'react-router-dom';
 import MapContainer from '../components/MapContainer';
 import StationPanel from '../components/StationPanel';
 import { MOCK_STATIONS, enrichWithMicroLocation } from '../data/mockData';
+import kepcoLatLng from '../data/kepcoLatLng.json';
+import kepcoAdditional from '../data/kepcoAdditional.json';
 import { Zap, ShieldCheck, Loader } from 'lucide-react';
+
+// 두 좌표 사이의 직선 거리를 미터(m) 단위로 계산하는 함수 (Haversine 공식)
+function getDistanceInMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
 
 export default function MapPage() {
   const [selectedStationId, setSelectedStationId] = useState(null);
@@ -74,16 +85,71 @@ export default function MapPage() {
 
         const apiStations = Object.values(grouped)
           .filter((s) => !isNaN(s.lat) && !isNaN(s.lng) && s.lat !== 0 && s.lng !== 0)
-          .map(enrichWithMicroLocation); // 마이크로 로케이션 DB 자동 매칭
+          .map(enrichWithMicroLocation);
 
-        console.log(`[클러스터링 준비] 유효 충전소 ${apiStations.length}개`);
+        console.log(`[환경부 API] 유효 충전소 ${apiStations.length}개`);
 
-        if (apiStations.length > 0) {
-          setStations(apiStations);
+        // ── 한전 위경도 데이터와 통합 (중복 제거 포함) ──────────────────
+        // 환경부 API에 이미 있는 충전소(반경 50m 이내 + 이름 포함)는 제외
+        const MERGE_RADIUS_M = 50;
+        const kepcoOnlyStations = kepcoLatLng
+          .filter(k => !isNaN(k.lat) && !isNaN(k.lng) && k.lat !== 0 && k.lng !== 0)
+          .filter(k => {
+            // apiStations 중에 이미 같은 충전소가 있으면 제외
+            return !apiStations.some(a =>
+              getDistanceInMeters(a.lat, a.lng, k.lat, k.lng) < MERGE_RADIUS_M
+            );
+          })
+          .map(k => {
+            // 한전 부가정보(상세위치, 주차비)와 매칭
+            const rawName = k.name.replace(/\s/g, '');
+            const extra = kepcoAdditional.find(ex => {
+              const exName = ex.name.replace(/\s/g, '');
+              return exName === rawName || exName.includes(rawName) || rawName.includes(exName);
+            });
+            return {
+              id: k.id,
+              name: k.name,
+              address: k.address,
+              lat: k.lat,
+              lng: k.lng,
+              floor: extra?.detailLocation || '정보 미제공',
+              pillar: extra?.parkingFee || '정보 미제공',
+              description: extra
+                ? `운영시간: ${extra.openTime} / 주차: ${extra.parkingFee}`
+                : `주소: ${k.address}`,
+              totalChargers: 1,
+              availableChargers: 1, // 한전 정적 데이터는 실시간 상태 미제공
+              type: '완속',
+              operator: '한국전력공사',
+              images: [],
+              tips: []
+            };
+          });
+
+        console.log(`[한전 추가] 환경부 미포함 충전소 ${kepcoOnlyStations.length}개 추가`);
+
+        const merged = [...apiStations, ...kepcoOnlyStations];
+        console.log(`[최종 통합] 전체 충전소 ${merged.length}개`);
+
+        if (merged.length > 0) {
+          setStations(merged);
         }
       } catch (err) {
-        console.warn("API 연동 실패(CORS 혹인 키 오류). 더미 데이터를 대신 보여줍니다.", err);
-        // 에러 발생 시 기존 MOCK_STATIONS 유지
+        console.warn("API 연동 실패. 한전 정적 데이터만 표시합니다.", err);
+        // 환경부 API 실패 시 한전 데이터만이라도 지도에 표시
+        const fallbackStations = kepcoLatLng
+          .filter(k => !isNaN(k.lat) && !isNaN(k.lng))
+          .map(k => ({
+            id: k.id, name: k.name, address: k.address,
+            lat: k.lat, lng: k.lng,
+            floor: '정보 미제공', pillar: '정보 미제공',
+            description: `주소: ${k.address}`,
+            totalChargers: 1, availableChargers: 1,
+            type: '완속', operator: '한국전력공사',
+            images: [], tips: []
+          }));
+        if (fallbackStations.length > 0) setStations(fallbackStations);
       } finally {
         setLoading(false);
       }
