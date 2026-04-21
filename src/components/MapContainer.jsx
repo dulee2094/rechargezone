@@ -80,7 +80,7 @@ export default function MapContainer({ stations, selectedId, onSelect }) {
 
   return (
     <LeafletMap
-      center={[mapCenterLat, mapCenterLat]}
+      center={[mapCenterLat, mapCenterLng]}
       zoom={12}
       style={{ width: "100%", height: "100%", zIndex: 0 }}
       zoomControl={false} // 확대/축소 버튼의 위치를 조절하거나 숨길 때
